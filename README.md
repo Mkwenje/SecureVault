@@ -1,46 +1,94 @@
-SecureVault
+<div align="center">
 
-SecureVault is a Java desktop application for protecting sensitive local files with multi-factor authentication and hybrid cryptography. It uses:
+🔐 SecureVault
 
-PBKDF2WithHmacSHA512 for password hashing
+A Java desktop application for multi-factor authenticated file encryption
 
-TOTP for six-digit authenticator codes
+SecureVault protects sensitive local files using AES-256-GCM, RSA-OAEP, PBKDF2, TOTP, and MongoDB Atlas.
 
-AES-256-GCM for file confidentiality and integrity
+Project status: Functional academic prototypeProgramme: BSc (Hons) in Computing — CybersecurityInstitution: National College of Ireland
 
-RSA-OAEP for protecting each file's AES key
+</div>
 
-MongoDB Atlas for user accounts and encrypted-file metadata
+<!--
+Add a screenshot at docs/images/securevault-dashboard.png, then uncomment the line below.
 
-Java Swing for the desktop interface
+![SecureVault dashboard](docs/images/securevault-dashboard.png)
+-->
 
-The encrypted file content remains on the user's computer. MongoDB stores the user account, RSA key material, file paths, and the RSA-wrapped AES key required to decrypt each file.
-
-Project status: Functional academic prototype developed for a final-year BSc (Hons) in Computing, Cybersecurity project.
+[!IMPORTANT]SecureVault is an academic cybersecurity prototype. Do not use it as a production security product without additional hardening, automated testing, dependency review, and independent security assessment.
 
 Contents
 
+Overview
+
 Features
 
-How SecureVault works
+How SecureVault Works
+
+Architecture
+
+Quick Start
 
 Prerequisites
 
-MongoDB Atlas setup
+MongoDB Atlas Setup
 
-Configure the application
+Configure the Application
 
 Run SecureVault
 
-Using the application
+Using the Application
 
-MongoDB data model
+MongoDB Data Model
 
-Project structure
+Project Structure
 
-Security guidance and limitations
+Security Scope and Limitations
 
 Troubleshooting
+
+Author
+
+Overview
+
+SecureVault is a Java Swing desktop application that protects sensitive local files with multi-factor authentication and hybrid cryptography.
+
+The application uses:
+
+Security area
+
+Implementation
+
+Password storage
+
+PBKDF2WithHmacSHA512
+
+Multi-factor authentication
+
+RFC 6238-compatible TOTP
+
+File encryption
+
+AES-256-GCM
+
+AES key protection
+
+RSA-2048 OAEP with SHA-256
+
+Database
+
+MongoDB Atlas
+
+Desktop interface
+
+Java Swing
+
+Build system
+
+Maven
+
+Encrypted file contents remain on the user's computer. MongoDB Atlas stores user-account information, RSA key material, file paths, timestamps, and the RSA-wrapped AES key required to decrypt each file.
 
 Features
 
@@ -48,13 +96,13 @@ Secure user registration with a unique username
 
 Password hashing with a random salt and 100,000 PBKDF2 iterations
 
-TOTP multi-factor authentication using a QR code
+TOTP multi-factor authentication using a generated QR code
 
 Show/hide password controls on registration, login, and password reset
 
 TOTP-protected forgotten-password reset
 
-AES-256-GCM file encryption with a fresh key and IV for each file
+AES-256-GCM encryption with a fresh AES key and IV for every file
 
 RSA-2048 OAEP wrapping of each AES key
 
@@ -62,17 +110,19 @@ User-specific encrypted-file records stored in MongoDB Atlas
 
 Local encrypted file output using the .sv extension
 
-File decryption with AES-GCM integrity verification
+AES-GCM integrity verification during decryption
 
 Optional deletion of the original file after confirmation
 
-MongoDB connection validation and automatic index creation at startup
+MongoDB connection validation at startup
 
-How SecureVault works
+Automatic creation of required MongoDB indexes
+
+How SecureVault Works
 
 Registration and authentication
 
-A user creates an account with a username and password.
+The user creates an account with a unique username and password.
 
 SecureVault generates:
 
@@ -84,56 +134,131 @@ a TOTP secret; and
 
 an RSA public/private key pair.
 
-The application displays a QR code that can be scanned by an RFC 6238-compatible authenticator app, such as SafeAuth, Google Authenticator, Microsoft Authenticator, or Authy.
+The application displays a QR code.
 
-Future logins require the username, password, and current six-digit TOTP code.
+The user scans the QR code with an RFC 6238-compatible authenticator application.
+
+Future logins require:
+
+the username;
+
+the account password; and
+
+the current six-digit TOTP code.
+
+Compatible authenticator applications include SafeAuth, Google Authenticator, Microsoft Authenticator, and Authy.
 
 File encryption
 
 SecureVault generates a new AES-256 key.
 
-The file is encrypted locally using AES-GCM with a random 12-byte IV and a 128-bit authentication tag.
+The file is encrypted locally with AES-GCM.
 
-The AES key is wrapped using the authenticated user's RSA public key and RSA-OAEP with SHA-256.
+AES-GCM uses:
 
-The encrypted file is written to the location chosen by the user.
+a random 12-byte IV; and
+
+a 128-bit authentication tag.
+
+The AES key is wrapped using the authenticated user's RSA public key.
+
+The encrypted file is saved to the location chosen by the user.
 
 MongoDB stores the file record and wrapped AES key.
 
 File decryption
 
-The user selects an encrypted-file record from the dashboard.
+The user selects a file record from the dashboard.
 
 SecureVault loads the wrapped AES key from MongoDB.
 
 The user's RSA private key unwraps the AES key.
 
-AES-GCM verifies the encrypted file and restores the plaintext to the chosen output location.
+AES-GCM verifies the encrypted file's integrity.
+
+The plaintext is restored to the output location chosen by the user.
+
+Architecture
+
+flowchart LR
+    U[User] --> UI[Java Swing Interface]
+
+    UI --> AUTH[Authentication Service]
+    AUTH --> PBKDF2[PBKDF2 Password Hashing]
+    AUTH --> TOTP[TOTP Verification]
+
+    UI --> CRYPTO[Cryptography Service]
+    CRYPTO --> AES[AES-256-GCM]
+    CRYPTO --> RSA[RSA-OAEP Key Wrapping]
+
+    AUTH --> DB[(MongoDB Atlas)]
+    CRYPTO --> DB
+    CRYPTO --> FS[(Local File System)]
+
+    DB --> USERS[users]
+    DB --> RECORDS[file_records]
+    FS --> FILES[Encrypted .sv Files]
+
+MongoDB stores structured application data. The encrypted file contents remain on the local file system.
+
+Quick Start
+
+Install Java 21 or later.
+
+Install Apache Maven.
+
+Create a MongoDB Atlas cluster.
+
+Create a MongoDB database user.
+
+Add the client IP address to the Atlas Network Access list.
+
+Configure MONGODB_URI or the mongodb.uri JVM property.
+
+Build and run the project.
+
+Register an account and scan the generated TOTP QR code.
+
+Log in with the username, password, and current TOTP code.
 
 Prerequisites
 
-Install or prepare the following:
+Requirement
 
-Java Development Kit 21 or newer
+Recommended version or status
+
+Java Development Kit
+
+Java 21 or newer
 
 Apache Maven
 
-MongoDB Atlas account and cluster
+Current stable version
 
-A TOTP authenticator application (Authenticator App- SafeAuth, can download it in the Google Play Store)
+MongoDB Atlas
 
-Internet access while using the application, because authentication and file records are stored in MongoDB Atlas
+Active account and cluster
 
-Optional: Apache NetBeans, which was used to develop the project
+Authenticator application
 
-Verify Java and Maven from a terminal:
+RFC 6238-compatible TOTP app
+
+Internet connection
+
+Required while using the application
+
+Apache NetBeans
+
+Optional; used during development
+
+Verify Java and Maven:
 
 java -version
 mvn -version
 
 The project is compiled for Java 21 through maven.compiler.release in pom.xml.
 
-MongoDB Atlas setup
+MongoDB Atlas Setup
 
 1. Create a cluster
 
@@ -141,86 +266,135 @@ Create or select a MongoDB Atlas project and deploy a cluster.
 
 2. Create a database user
 
-Create an Atlas database user for the application. This is separate from the email/password used to sign in to the Atlas website.
+Open Database Access and create a database user for SecureVault.
 
-Grant the user read/write access to the database that SecureVault will use. The default database name is:
+[!NOTE]The MongoDB database user is separate from the email address and password used to sign in to the MongoDB Atlas website.
+
+Grant the user read/write access to the SecureVault database.
+
+The default database name is:
 
 securevault
 
-For a least-privilege configuration, grant readWrite on the securevault database rather than a broad administrative role.
+For least privilege, grant readWrite access to the securevault database instead of assigning a broad administrative role.
 
 3. Allow the client IP address
 
-Open Atlas Network Access and add the public IP address of the computer that will run SecureVault.
+Open Network Access and add the public IP address of the computer that will run SecureVault.
 
-Avoid allowing all addresses (0.0.0.0/0) unless this is a temporary test environment and you understand the risk.
+[!WARNING]Avoid allowing all addresses with 0.0.0.0/0 unless this is a temporary test environment and you understand the risk.
 
 4. Copy the Java connection string
 
-Obtain the MongoDB connection string for a Java application. It normally has this form:
+Obtain the MongoDB connection string for a Java application.
+
+It normally follows this format:
 
 mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=<application-name>
 
-Replace all placeholders with the real Atlas database-user details.
+Replace every placeholder with the real MongoDB Atlas database-user and cluster details.
 
-If the database password contains reserved URI characters such as @, #, %, /, :, or ?, percent-encode those characters in the connection string.
+If the password contains reserved URI characters, percent-encode them.
 
-Configure the application
+Examples:
 
-SecureVault deliberately does not require the MongoDB URI to be stored in Java source code. Configure it through either a JVM property or an operating-system environment variable.
+Character
+
+Encoded value
+
+@
+
+%40
+
+#
+
+%23
+
+%
+
+%25
+
+/
+
+%2F
+
+:
+
+%3A
+
+?
+
+%3F
+
+Configure the Application
+
+SecureVault does not require the MongoDB URI to be stored in the Java source code.
+
+Configure it with either:
+
+a JVM property; or
+
+an operating-system environment variable.
 
 Option A: NetBeans VM options
 
 Open the extracted SecureVault folder as a Maven project.
 
-Right-click the project and select Properties.
+Right-click the project.
+
+Select Properties.
 
 Open Run.
 
-In VM Options, enter the following on one line:
+Enter the following in VM Options on one line:
 
--Dmongodb.uri=mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=<application-name> -Dmongodb.database=securevault
+-Dmongodb.uri=mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=SecureVault -Dmongodb.database=securevault
 
 Select OK.
 
-Do not include XML tags such as <exec.vmArgs> in the VM Options box.
+[!CAUTION]Do not include XML tags such as <exec.vmArgs> in the NetBeans VM Options box.
 
 Option B: Environment variables
 
 Windows PowerShell — current session
 
-$env:MONGODB_URI="mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=<application-name>"
+$env:MONGODB_URI="mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=SecureVault"
 $env:MONGODB_DATABASE="securevault"
+
+Windows Command Prompt — current session
+
+set MONGODB_URI=mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=SecureVault
+set MONGODB_DATABASE=securevault
 
 Windows — persistent variables
 
-setx MONGODB_URI "mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=<application-name>"
+setx MONGODB_URI "mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=SecureVault"
 setx MONGODB_DATABASE "securevault"
 
 Restart NetBeans or open a new terminal after using setx.
 
 macOS or Linux
 
-export MONGODB_URI='mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=<application-name>'
+export MONGODB_URI='mongodb+srv://<database-user>:<database-password>@<cluster-host>/?appName=SecureVault'
 export MONGODB_DATABASE='securevault'
 
 The database-name setting is optional. SecureVault uses securevault when no custom name is supplied.
 
 Configuration lookup order
 
-SecureVault reads configuration in this order:
+SecureVault checks the MongoDB URI in this order:
 
-JVM property mongodb.uri
+JVM property: mongodb.uri
 
-Environment variable MONGODB_URI
+Environment variable: MONGODB_URI
 
-For the database name:
+SecureVault checks the database name in this order:
 
-JVM property mongodb.database
+JVM property: mongodb.database
 
-Environment variable MONGODB_DATABASE
+Environment variable: MONGODB_DATABASE
 
-Default value securevault
+Default value: securevault
 
 Run SecureVault
 
@@ -240,7 +414,7 @@ ie.ncirl.securevault.ui.App
 
 On startup, the application:
 
-connects to MongoDB;
+connects to MongoDB Atlas;
 
 sends a ping command;
 
@@ -248,20 +422,26 @@ creates the required indexes; and
 
 opens the login window.
 
-If the MongoDB connection cannot be established, the application displays an error and does not open the login screen.
+If MongoDB cannot be reached, SecureVault displays an error and does not open the login screen.
 
 Command line
 
-From the folder containing pom.xml:
+Open a terminal in the folder containing pom.xml.
+
+Set MONGODB_URI in the same terminal session, then run:
 
 mvn clean compile
+
+mvn org.codehaus.mojo:exec-maven-plugin:3.5.1:java \
+  -Dexec.mainClass=ie.ncirl.securevault.ui.App
+
+On Windows Command Prompt, use the command on one line:
+
 mvn org.codehaus.mojo:exec-maven-plugin:3.5.1:java -Dexec.mainClass=ie.ncirl.securevault.ui.App
 
-Make sure MONGODB_URI is set in the same terminal session before running the second command.
+Using the Application
 
-Using the application
-
-1. Register an account
+Register an account
 
 Open SecureVault.
 
@@ -269,25 +449,25 @@ Select Register.
 
 Enter a unique username.
 
-Enter a password containing at least 8 characters.
+Enter a password containing at least eight characters.
 
-Use Show password only when required and make sure no one can observe the screen.
+Use Show password only when required.
 
 Select Create Account.
 
-Scan the displayed QR code with a TOTP authenticator application.
+Scan the displayed QR code with a TOTP authenticator.
 
-Keep the displayed manual TOTP secret in a secure location in case the QR code cannot be scanned.
+Store the manual TOTP secret securely.
 
-Select Done, then return to the login screen.
+Select Done and return to the login screen.
 
-The application also creates a local QR image named:
+The application may create a QR image in the working directory using a name similar to:
 
 qrcode_<username>.png
 
-Delete this file securely after the authenticator has been configured. Anyone who obtains the QR image or manual secret may be able to generate valid TOTP codes.
+[!WARNING]Delete the QR image securely after configuring the authenticator. Anyone who obtains the QR image or manual TOTP secret may be able to generate valid authentication codes.
 
-2. Log in
+Log in
 
 Enter:
 
@@ -297,9 +477,11 @@ the account password; and
 
 the current six-digit TOTP code.
 
-Select Login. A TOTP code is normally valid for a 30-second period. SecureVault allows a small clock-drift window, but the computer and phone clocks should still be synchronised.
+Select Login.
 
-3. Encrypt a file
+A TOTP code is normally valid for 30 seconds. SecureVault allows a small clock-drift window, but the computer and phone clocks should remain synchronised.
+
+Encrypt a file
 
 Log in to the dashboard.
 
@@ -309,27 +491,31 @@ Choose the plaintext file.
 
 Choose where to save the encrypted output.
 
-The suggested filename is the original name followed by .sv.
+Confirm the suggested .sv filename or select another filename.
 
 Wait for the success message.
 
-Optional: select Delete original after encryption before starting encryption. SecureVault will ask for confirmation before deleting the original file.
+Optional:
 
-Normal operating-system deletion is not guaranteed secure erasure. Keep reliable backups and verify the encrypted file before deleting important data.
+Select Delete original after encryption before starting.
 
-4. View encrypted-file records
+Confirm deletion when SecureVault asks.
 
-The dashboard table displays:
+[!CAUTION]Normal operating-system deletion is not guaranteed secure erasure. Verify the encrypted file and maintain reliable backups before deleting important plaintext data.
 
-MongoDB record ID;
+View encrypted-file records
 
-original file path; and
+The dashboard displays:
 
-encrypted file path.
+the MongoDB record ID;
 
-Select Refresh to reload records from MongoDB.
+the original file path; and
 
-5. Decrypt a file
+the encrypted file path.
+
+Select Refresh to reload records from MongoDB Atlas.
+
+Decrypt a file
 
 Select a record in the dashboard table.
 
@@ -339,35 +525,35 @@ Choose the output location and filename.
 
 SecureVault retrieves and unwraps the AES key.
 
-The file is decrypted locally.
+SecureVault decrypts the file locally.
 
 Choose whether to open the restored file.
 
-Do not move, rename, or delete the .sv file without also understanding that the MongoDB record stores its current path. If the encrypted file is moved, the stored path will no longer point to it and the current application has no relink function.
+[!NOTE]The MongoDB record stores the encrypted file's current path. If the .sv file is moved, renamed, or deleted, the application may no longer be able to locate it. The current version does not provide a relink function.
 
-6. Reset a forgotten password
+Reset a forgotten password
 
 Select Forgot Password? on the login screen.
 
-Enter the username.
+Enter the registered username.
 
 Enter the current six-digit TOTP code.
 
-Enter and confirm a new password of at least 8 characters.
+Enter and confirm a new password containing at least eight characters.
 
-The new password must be different from the current password.
+Ensure the new password differs from the current password.
 
 Select Reset Password.
 
-The password reset changes only the password hash and salt. It keeps the existing TOTP secret and RSA key pair so that files encrypted before the reset remain decryptable.
+The reset process changes only the password hash and salt. It preserves the existing TOTP secret and RSA key pair so files encrypted before the reset remain decryptable.
 
-A user who loses both the password and access to the TOTP secret cannot use this recovery flow.
+[!IMPORTANT]A user who loses both the password and access to the TOTP secret cannot use the current recovery flow.
 
-7. Log out
+Log out
 
 Select Logout on the dashboard. SecureVault returns to the login window.
 
-MongoDB data model
+MongoDB Data Model
 
 SecureVault creates two collections.
 
@@ -375,36 +561,95 @@ users
 
 Typical fields:
 
+Field
+
+Purpose
+
 _id
+
+MongoDB user identifier
+
 username
+
+Unique application username
+
 passwordHash
+
+PBKDF2 password hash
+
 salt
+
+Random password salt
+
 totpSecret
+
+TOTP authentication secret
+
 publicKey
+
+RSA public key
+
 privateKey
+
+RSA private key
+
 createdAt
-passwordChangedAt   (added after a password reset)
+
+Account creation time
+
+passwordChangedAt
+
+Password reset time, when applicable
 
 file_records
 
 Typical fields:
 
+Field
+
+Purpose
+
 _id
+
+MongoDB file-record identifier
+
 userId
+
+Owner of the file record
+
 originalPath
+
+Original plaintext path
+
 encryptedPath
+
+Local .sv file path
+
 wrappedKey
+
+RSA-wrapped AES key
+
 dateEncrypted
+
+Encryption timestamp
 
 Indexes
 
-The application creates these indexes at startup:
+SecureVault creates the following indexes at startup:
 
-uq_users_username — unique ascending index on users.username
+Index
 
-ix_file_records_user_date — compound index on file_records.userId and descending dateEncrypted
+Purpose
 
-Project structure
+uq_users_username
+
+Unique ascending index on users.username
+
+ix_file_records_user_date
+
+Compound index on file_records.userId and descending dateEncrypted
+
+Project Structure
 
 SecureVault/
 ├── pom.xml
@@ -414,66 +659,84 @@ SecureVault/
 └── src/
     └── main/
         └── java/
-            └── ie/ncirl/securevault/
-                ├── auth/
-                │   ├── AuthService.java
-                │   ├── QrCodeUtil.java
-                │   └── TotpUtil.java
-                ├── crypto/
-                │   ├── AesGcmCrypto.java
-                │   ├── KeyWrapUtil.java
-                │   ├── PasswordHasher.java
-                │   └── RsaKeyUtil.java
-                ├── db/
-                │   ├── MongoConnection.java
-                │   └── MongoFileRecordDao.java
-                ├── model/
-                │   ├── FileRecord.java
-                │   └── User.java
-                ├── securevault/
-                │   └── SecureVault.java
-                └── ui/
-                    ├── App.java
-                    ├── LoginFrame.java
-                    ├── PasswordVisibility.java
-                    ├── QrSetupDialog.java
-                    ├── RegisterFrame.java
-                    ├── ResetPasswordDialog.java
-                    └── VaultDashboardFrame.java
+            └── ie/
+                └── ncirl/
+                    └── securevault/
+                        ├── auth/
+                        │   ├── AuthService.java
+                        │   ├── QrCodeUtil.java
+                        │   └── TotpUtil.java
+                        ├── crypto/
+                        │   ├── AesGcmCrypto.java
+                        │   ├── KeyWrapUtil.java
+                        │   ├── PasswordHasher.java
+                        │   └── RsaKeyUtil.java
+                        ├── db/
+                        │   ├── MongoConnection.java
+                        │   └── MongoFileRecordDao.java
+                        ├── model/
+                        │   ├── FileRecord.java
+                        │   └── User.java
+                        ├── securevault/
+                        │   └── SecureVault.java
+                        └── ui/
+                            ├── App.java
+                            ├── LoginFrame.java
+                            ├── PasswordVisibility.java
+                            ├── QrSetupDialog.java
+                            ├── RegisterFrame.java
+                            ├── ResetPasswordDialog.java
+                            └── VaultDashboardFrame.java
 
-Security guidance and limitations
+Security Scope and Limitations
 
-SecureVault provides meaningful file-at-rest protection, but it is important to understand the security boundary of this prototype.
+SecureVault provides meaningful protection for encrypted files at rest, but it is important to understand the security boundary of this prototype.
+
+Security guidance
 
 Never commit the MongoDB URI, database password, QR image, or TOTP secret to GitHub.
 
-Rotate a MongoDB password immediately if it has been exposed in source code, screenshots, logs, or commit history.
+Rotate a MongoDB password immediately if it appears in source code, screenshots, logs, terminal output, or commit history.
 
-Use an Atlas database user with only the permissions required by the application.
+Use a MongoDB Atlas database user with only the permissions required by the application.
 
-The encrypted file and its matching MongoDB record are both required for normal decryption.
+Keep the authenticator device and TOTP secret secure.
 
-Encrypted file content is stored locally and is not backed up by MongoDB.
+Maintain backups of important encrypted files.
 
-Decrypted output is ordinary plaintext and must be protected by the user and operating system.
+Protect decrypted output because it is ordinary plaintext.
 
-The optional original-file deletion uses normal file deletion, not certified secure erasure.
+Current limitations
 
-The current implementation stores the RSA key pair in the MongoDB user document. A production system should protect private keys with an operating-system keystore, TPM, hardware security module, or dedicated key-management service.
+The encrypted local file and matching MongoDB record are both required for normal decryption.
 
-The application reads a complete file into memory during encryption and decryption. Very large files may require substantial RAM.
+MongoDB does not back up the encrypted file contents.
+
+The optional original-file deletion uses normal deletion, not certified secure erasure.
+
+The current implementation stores the RSA key pair in the MongoDB user document.
+
+A production implementation should protect private keys with an operating-system keystore, TPM, hardware security module, or dedicated key-management service.
+
+The application reads complete files into memory during encryption and decryption, so very large files may require substantial RAM.
 
 SecureVault does not claim to protect data on a computer that is already fully compromised by privileged malware.
 
-This repository is an academic prototype and should undergo additional hardening, automated testing, dependency review, and security assessment before production use.
+Additional automated testing, dependency review, penetration testing, and deployment hardening are required before production use.
 
 Troubleshooting
 
-MongoDB connection string is not configured
+<details>
+<summary><strong>MongoDB connection string is not configured</strong></summary>
 
-Set MONGODB_URI or add -Dmongodb.uri=... to the JVM options. Restart the IDE if an environment variable was created after NetBeans was opened.
+Set MONGODB_URI or add -Dmongodb.uri=... to the JVM options.
 
-Authentication failed
+Restart NetBeans if the environment variable was created after NetBeans was opened.
+
+</details>
+
+<details>
+<summary><strong>MongoDB authentication failed</strong></summary>
 
 Check that:
 
@@ -487,19 +750,25 @@ the connection string points to the correct cluster; and
 
 the database user has sufficient permissions.
 
-Connection timeout or server-selection error
+</details>
+
+<details>
+<summary><strong>Connection timeout or server-selection error</strong></summary>
 
 Check that:
 
 the current public IP address is active in Atlas Network Access;
 
-the cluster is running;
+the MongoDB cluster is running;
 
 the internet connection is available; and
 
-the local network or DNS service allows MongoDB SRV connections.
+the local network or DNS service permits MongoDB SRV connections.
 
-Login fails with a correct password
+</details>
+
+<details>
+<summary><strong>Login fails with the correct password</strong></summary>
 
 Confirm that:
 
@@ -507,39 +776,65 @@ the current six-digit TOTP code was entered;
 
 the phone and computer clocks are synchronised;
 
-the correct authenticator account is being used; and
+the correct authenticator account is selected; and
 
 the account exists in the configured MongoDB database.
 
-QR code is not displayed
+</details>
 
-SecureVault writes qrcode_<username>.png to the application's working directory. Confirm that the directory is writable and that the file has not been blocked or removed before the QR setup dialog opens.
+<details>
+<summary><strong>The QR code is not displayed</strong></summary>
 
-That username is already registered
-
-The users.username field has a unique index. Choose a different username or use the existing account.
-
-Decryption fails
+SecureVault writes a QR image to the application's working directory.
 
 Confirm that:
 
-the selected .sv file still exists at the path displayed in the dashboard;
+the working directory is writable;
+
+the QR image has not been blocked;
+
+the QR file still exists while the setup dialog is open; and
+
+the application has permission to create image files.
+
+</details>
+
+<details>
+<summary><strong>The username is already registered</strong></summary>
+
+The users.username field has a unique index.
+
+Choose another username or use the existing account.
+
+</details>
+
+<details>
+<summary><strong>Decryption fails</strong></summary>
+
+Confirm that:
+
+the selected .sv file still exists at the dashboard path;
 
 the file was not renamed or moved;
 
 the encrypted file has not been modified or corrupted;
 
-the correct user account is logged in; and
+the correct user is logged in; and
 
-the MongoDB file record and wrapped key still exist.
+the MongoDB file record and wrapped AES key still exist.
 
 AES-GCM intentionally rejects modified ciphertext instead of generating an untrusted plaintext file.
 
-Java compilation error
+</details>
 
-Use JDK 21 or newer and confirm that Maven is using the correct JDK:
+<details>
+<summary><strong>Java compilation fails</strong></summary>
+
+Use Java 21 or newer and confirm that Maven is using the correct JDK:
 
 mvn -version
+
+</details>
 
 Author
 
